@@ -3,6 +3,7 @@ module authservice
 go 1.15
 
 require (
+	github.com/Smart-Pot/jwtservice v0.0.0-20210205143835-32d13ce8bf0e
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-kit/kit v0.10.0
 	github.com/go-playground/universal-translator v0.17.0 // indirect
