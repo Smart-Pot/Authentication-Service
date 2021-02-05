@@ -15,9 +15,14 @@ type service struct {
 }
 
 type Service interface {
-	SignIn(ctx context.Context, email, password string) (token string, err error)
-	SignUp(ctx context.Context)
-	ResolveToken(ctx context.Context)
+	Login(ctx context.Context, email, password string) (token string, err error)
+	SignUp(ctx context.Context, form data.SignUpForm) error
+}
+
+func NewService(logger log.Logger) Service {
+	return &service{
+		logger: logger,
+	}
 }
 
 func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
@@ -37,7 +42,7 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	return nil
 }
 
-func (s *service) LogIn(ctx context.Context, email, password string) (token string, err error) {
+func (s *service) Login(ctx context.Context, email, password string) (token string, err error) {
 	userCred, err := data.GetUserCrediantals(ctx, email)
 	if err != nil {
 		return "", err

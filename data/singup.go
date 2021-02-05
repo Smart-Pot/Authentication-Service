@@ -8,10 +8,10 @@ import (
 )
 
 type SignUpForm struct {
-	FirstName string `validate:"is-name,required"`
-	LastName  string `validate:"is-name,required"`
-	Email     string `validate:"email,required"`
-	Password  string `validate:"is-passwd,required"`
+	FirstName string `json:"firstname" validate:"is-name,required"`
+	LastName  string `json:"lastname"  validate:"is-name,required"`
+	Email     string `json:"email"     validate:"email,required"`
+	Password  string `json:"password"  validate:"is-passwd,required"`
 }
 
 func (s *SignUpForm) Validate() error {
