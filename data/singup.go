@@ -4,10 +4,12 @@ import (
 	"regexp"
 
 	"github.com/go-playground/validator"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type SignUpForm struct {
+	UserID    string
 	FirstName string `validate:"is-name,required"`
 	LastName  string `validate:"is-name,required"`
 	Email     string `validate:"email,required"`
@@ -29,6 +31,10 @@ func (s *SignUpForm) HashPassword() error {
 	}
 	s.Password = newPasswd
 	return nil
+}
+
+func (s *SignUpForm) GenerateUserID() {
+	s.UserID = uuid.NewString()
 }
 
 var nameValidationReg = regexp.MustCompile("^[a-zA-Z,ç,Ç,ğ,Ğ,ı,İ,ö,Ö,ş,Ş,ü,Ü]*$")

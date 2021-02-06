@@ -5,13 +5,14 @@ import (
 	"context"
 	"errors"
 
+	"github.com/Smart-Pot/jwtservice"
 	"github.com/go-kit/kit/log"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type service struct {
 	logger log.Logger
-	jwt    *jwtService
+	jwt    *jwtservice.JwtService
 }
 
 type Service interface {
@@ -32,6 +33,8 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 		return err
 	}
 
+	form.GenerateUserID()
+
 	// TODO: notify message broker server for new user
 
 	return nil
@@ -45,5 +48,5 @@ func (s *service) LogIn(ctx context.Context, email, password string) (token stri
 	if err := bcrypt.CompareHashAndPassword([]byte(userCred.Password), []byte(password)); err != nil {
 		return "", errors.New("wrong password")
 	}
-	return s.jwt.tokenize(userCred.UserId)
+	return s.jwt.Tokenize(userCred.UserId)
 }
