@@ -2,17 +2,25 @@ package main
 
 import (
 	"authservice/cmd"
-	"authservice/config"
 	"authservice/data"
 	"log"
 	"os"
 	"os/signal"
+
+	"github.com/Smart-Pot/pkg"
+	"github.com/Smart-Pot/pkg/adapter/amqp"
 )
 
 func main() {
-	config.ReadConfig()
+	if err := pkg.Config.ReadConfig(); err != nil {
+		log.Fatal(err)
+	}
 
 	data.DatabaseConnection()
+
+	if err := amqp.Set(pkg.Config.AMQPAddress); err != nil {
+		log.Fatal(err)
+	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)
