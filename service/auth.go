@@ -37,6 +37,7 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	if err == nil {
 		return errors.New("Email is already taken")
 	}
+
 	if err != nil && err != data.ErrCredentalNotFound {
 		return err
 	}
@@ -68,5 +69,5 @@ func (s *service) Login(ctx context.Context, email, password string) (token stri
 	if err := bcrypt.CompareHashAndPassword([]byte(userCred.Password), []byte(password)); err != nil {
 		return "", errors.New("wrong password")
 	}
-	return s.jwt.Tokenize(userCred.UserId)
+	return s.jwt.Tokenize(userCred.UserID)
 }
