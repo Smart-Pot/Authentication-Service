@@ -8,9 +8,12 @@ import (
 )
 
 type UserCredentials struct {
-	UserId   string `json:"userId"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	UserId           string `json:"userId"`
+	Email            string `json:"email"`
+	Password         string `json:"password"`
+	IsActive         string `json:"isActive"`
+	Authorization    string `json:"authorization"`
+	VerificationHash string `json:"verificationHash"`
 }
 
 func (cred *UserCredentials) HashPassword() error {
