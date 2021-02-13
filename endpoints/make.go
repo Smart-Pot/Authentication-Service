@@ -32,3 +32,16 @@ func makeSignUpEndpoint(s service.Service) endpoint.Endpoint {
 		return response, nil
 	}
 }
+
+func makeLoginWithGoogleEndpoint(s service.Service) endpoint.Endpoint {
+	return func(ctx context.Context,request interface{}) (interface{},error) {
+		req := request.(OAuth2Request)
+		result, err := s.LoginWithGoogle(ctx,req.Token)
+		response := AuthResponse{Token: result, Success: 1, Message: "Login Successful!"}
+		if err != nil {
+			response.Success = 0
+			response.Message = err.Error()
+		}
+		return response, nil
+	}
+}

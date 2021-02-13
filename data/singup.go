@@ -14,6 +14,7 @@ type SignUpForm struct {
 	LastName  string `json:"lastname"  validate:"is-name,required"`
 	Email     string `json:"email"     validate:"email,required"`
 	Password  string `json:"password"  validate:"is-passwd,required"`
+	IsOAuth   bool `json:"isOAuth" bson:"isOAuth"`
 }
 
 func (s *SignUpForm) Validate() error {

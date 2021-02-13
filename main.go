@@ -3,9 +3,11 @@ package main
 import (
 	"authservice/cmd"
 	"authservice/data"
+	"authservice/service/oauth"
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 
 	"github.com/Smart-Pot/pkg"
 	"github.com/Smart-Pot/pkg/adapter/amqp"
@@ -19,6 +21,11 @@ func main() {
 	data.DatabaseConnection()
 
 	if err := amqp.Set(pkg.Config.AMQPAddress); err != nil {
+		log.Fatal(err)
+	}
+
+	wd,_ := os.Getwd()
+	if err := oauth.ReadConfig(filepath.Join(wd,"config"));err != nil {
 		log.Fatal(err)
 	}
 

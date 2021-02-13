@@ -3,10 +3,10 @@ package service
 
 import (
 	"authservice/data"
+	"authservice/service/oauth"
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 
 	"github.com/Smart-Pot/jwtservice"
 	"github.com/Smart-Pot/pkg/adapter/amqp"
@@ -30,7 +30,8 @@ type service struct {
 }
 // Service represents an authentication service 
 type Service interface {
-	Login(ctx context.Context, email, password string) (token string, err error)
+	LoginWithGoogle(ctx context.Context,token string)(string,error)
+	Login(ctx context.Context, email, password string) (string,error)
 	SignUp(ctx context.Context, form data.SignUpForm) error
 }
 
@@ -62,6 +63,56 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	}
 	form.GenerateUserID()
 
+	return s.signUp(form)
+}
+
+// Login gets email and password, and generate JWT for userId
+func (s *service) Login(ctx context.Context, email, password string) (string,error) {
+	userCred, err := data.GetUserCrediantals(ctx, email)
+	if err != nil {
+		if err == data.ErrCredentalNotFound {
+			return "" , ErrEmailNotFound
+		}
+		return "", err
+	}
+	if err := bcrypt.CompareHashAndPassword([]byte(userCred.Password), []byte(password)); err != nil {
+		return "", ErrWrongPassword
+	}
+	return s.jwt.Tokenize(userCred.UserID)
+}
+
+
+func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,error) {
+	
+	claim,err := oauth.ValidateGoogleJWT(token)
+	if err != nil {
+		return "",err
+	}
+	cred, err := data.GetUserCrediantals(ctx, claim.Email)
+	
+	// If user exist, tokenize userId and returns it
+	if err == nil {		
+		return s.jwt.Tokenize(cred.UserID)
+	}
+
+	f := data.SignUpForm{
+		Email: claim.Email,
+		FirstName: claim.FirstName,
+		LastName: claim.LastName,
+		Password: "",
+		IsOAuth: true,
+	}
+	f.GenerateUserID()
+
+	if err := s.signUp(f); err != nil {
+		return "",err
+	}
+
+	return s.jwt.Tokenize(f.UserID)
+}
+
+
+func (s *service) signUp(form data.SignUpForm) error {
 	// Stringfy form data
 	b, err := json.Marshal(form)
 	if err != nil {
@@ -74,19 +125,4 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	}
 	return nil
 }
-
-// Login gets email and password, and generate JWT for userId
-func (s *service) Login(ctx context.Context, email, password string) (string,error) {
-	userCred, err := data.GetUserCrediantals(ctx, email)
-	if err != nil {
-		if err == data.ErrCredentalNotFound {
-			return "" , ErrEmailNotFound
-		}
-		return "", err
-	}
-	fmt.Println(password,userCred.Password)
-	if err := bcrypt.CompareHashAndPassword([]byte(userCred.Password), []byte(password)); err != nil {
-		return "", ErrWrongPassword
-	}
-	return s.jwt.Tokenize(userCred.UserID)
-}
+ 

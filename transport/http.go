@@ -22,9 +22,17 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
 		httptransport.ServerErrorEncoder(encodeError),
 	}
+
 	r.Methods("POST").Path("/login").Handler(httptransport.NewServer(
 		e.Login,
 		decodeAuthHTTPRequest,
+		encodeHTTPResponse,
+		options...,
+	))
+	
+	r.Methods("POST").Path("/google/login").Handler(httptransport.NewServer(
+		e.LoginWithGoogle,
+		decodeOAuthHTTPRequest,
 		encodeHTTPResponse,
 		options...,
 	))
@@ -42,6 +50,14 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 func encodeHTTPResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(response)
+}
+
+func decodeOAuthHTTPRequest(_ context.Context,r *http.Request) (interface{}, error) {
+	const tn = "x-oauth-token"
+	t := r.Header.Get(tn) 
+	return endpoints.OAuth2Request{
+		Token: t,
+	},nil
 }
 
 func decodeAuthHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -66,7 +82,6 @@ func decodeNewUserHTTPRequest(_ context.Context, r *http.Request) (interface{}, 
 	return endpoints.NewUserRequest{
 		NewUser: u,
 	}, nil
-
 }
 
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {

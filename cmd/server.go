@@ -4,6 +4,7 @@ import (
 	"authservice/endpoints"
 	"authservice/service"
 	"authservice/transport"
+	"fmt"
 	golog "log"
 	"net/http"
 	"os"
@@ -31,6 +32,8 @@ func startServer() error {
 	service := service.NewService(logger, producer)
 	endpoint := endpoints.MakeEndpoints(service)
 	handler := transport.MakeHTTPHandlers(endpoint, logger)
+
+	fmt.Println("HELLO",pkg.Config.Server.Address)
 
 	l := golog.New(os.Stdout, "AUTH-SERVICE", 0)
 	// Set handler and listen given port
