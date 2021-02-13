@@ -5,7 +5,6 @@ import (
 	"authservice/data"
 	"authservice/service/oauth"
 	"context"
-	"encoding/json"
 	"errors"
 
 	"github.com/Smart-Pot/jwtservice"
@@ -63,7 +62,7 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	}
 	form.GenerateUserID()
 
-	return s.signUp(form)
+	return data.CreateUser(ctx,form)
 }
 
 // Login gets email and password, and generate JWT for userId
@@ -102,9 +101,14 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 		Password: "",
 		IsOAuth: true,
 	}
+	if err = f.HashPassword(); err != nil {
+		return "", err
+	}
 	f.GenerateUserID()
+	
 
-	if err := s.signUp(f); err != nil {
+	
+	if err = data.CreateUser(ctx,f);  err != nil {
 		return "",err
 	}
 
@@ -112,17 +116,4 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 }
 
 
-func (s *service) signUp(form data.SignUpForm) error {
-	// Stringfy form data
-	b, err := json.Marshal(form)
-	if err != nil {
-		return err
-	}
-
-	// Notify rabbitmq server
-	if err := s.producer.Produce(b); err != nil {
-		return err
-	}
-	return nil
-}
  

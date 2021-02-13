@@ -2,44 +2,40 @@ package data
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSignUpValidation(t *testing.T) {
 	cases := []struct {
-		FirstName string
-		res       bool
+		form SignUpForm
+		ok bool
 	}{
 		{
-			FirstName: "Ahmet",
-			res:       true,
+			form: SignUpForm{
+				FirstName: "Ahmet",
+				LastName: "ÖZCAN",
+				Password: "ahmetcanozcan",
+				Email: "ahmetcanozcan7@gmail.com",
+			},
+			ok: true,
 		},
 		{
-			FirstName: "Ken@n",
-			res:       false,
-		},
-		{
-			FirstName: "123Ahmet1",
-			res:       false,
-		},
-		{
-			FirstName: "Ege",
-			res:       true,
-		},
-		{
-			FirstName: "Ege CEMAL",
-			res:       false,
-		},
-	}
-
-	for i, c := range cases {
-		s := SignUpForm{
-			FirstName: c.FirstName,
+			form: SignUpForm{
+				FirstName: "K€N@N",
+				LastName: "@BB@C",
+				Password: "kenanabbak",
+				Email: "kenanabbak@gmail.com",
+			},
+			ok: true,},
 		}
-		err := s.Validate()
-		t.Log("err->", err, "res", c.res, "case", i)
-		if (err == nil) != c.res {
-			t.Error("Failed on case", i, "validation err", err, "is ok", c.res)
-			t.FailNow()
+
+	for _, c := range cases {
+		err := c.form.Validate()
+		if c.ok{
+			assert.Nil(t,err)
+		} else {
+			assert.NotNil(t,err)
 		}
 	}
 }

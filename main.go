@@ -24,8 +24,8 @@ func main() {
 		log.Fatal(err)
 	}
 
-	wd,_ := os.Getwd()
-	if err := oauth.ReadConfig(filepath.Join(wd,"config"));err != nil {
+	wd, _ := os.Getwd()
+	if err := oauth.ReadConfig(filepath.Join(wd, "config")); err != nil {
 		log.Fatal(err)
 	}
 
