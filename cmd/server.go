@@ -23,7 +23,7 @@ func startServer() error {
 	logger = log.With(logger, "caller", log.DefaultCaller)
 
 	// Make producer for service
-	producer, err := amqp.MakeProducer("NewUser")
+	producer, err := amqp.MakeProducer("VerificationMail")
 
 	if err != nil {
 		return err

@@ -5,10 +5,12 @@ import (
 	"authservice/data"
 	"authservice/service/oauth"
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/Smart-Pot/jwtservice"
 	"github.com/Smart-Pot/pkg/adapter/amqp"
+	"github.com/Smart-Pot/pkg/tool/crypto"
 	"github.com/go-kit/kit/log"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -38,8 +40,8 @@ type Service interface {
 func NewService(logger log.Logger, producer amqp.Producer) Service {
 	return &service{
 		logger:   logger,
-		producer: producer,
 		jwt : jwtservice.New(),
+		producer: producer,
 	}
 }
 
@@ -62,7 +64,27 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	}
 	form.GenerateUserID()
 
-	return data.CreateUser(ctx,form)
+	if err = data.CreateUser(ctx,form); err != nil {
+		return err
+	}
+
+	// Hash user id for verification mail
+	h, err := crypto.Encrypt(form.UserID)
+	if err != nil {
+		return err
+	}
+
+	r := struct {
+		Hash  string `json:"hash"`
+		Email string `json:"email"`
+	}{
+		Hash:  h,
+		Email: form.Email,
+	}
+
+	b, _ := json.Marshal(r)
+
+	return s.producer.Produce(b)	
 }
 
 // Login gets email and password, and generate JWT for userId
