@@ -24,8 +24,8 @@ var (
 	ErrWrongPassword = errors.New("Password is wrong for given email")
 	// ErrEmailNotFound codes returned when there is no user with the given email
 	ErrEmailNotFound = errors.New("Not found an account by given email")
-	// ErrNotVerified codes returned when the user tries to log in inactive account
-	ErrNotVerified = errors.New("Account not verified")
+	// ErrInactiveAccount codes returned when the user tries to log in inactive account
+	ErrInactiveAccount = errors.New("Email address not verified")
 )
 
 type service struct {
@@ -53,14 +53,14 @@ func NewService(logger log.Logger, producer amqp.Producer) Service {
 // SignUp gets a form data and verify it and notify amqp server
 func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	// Try to find a user who has that email
-	_, err := data.GetUserCrediantals(ctx, form.Email)
+	_, err := data.GetUserByEmail(ctx, form.Email)
 	// If a cred is founded than return email taken error
 	if err == nil {
 		return ErrEmailTaken
 	}
 
 	// if err is not credental not found, return 'err'	
-	if err != nil && err != data.ErrCredentalNotFound {
+	if err != nil && err != data.ErrUserNotFound {
 		return err
 	}
 
@@ -95,26 +95,33 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 // Login gets email and password, and generate JWT for userId
 func (s *service) Login(ctx context.Context, email, password string) (string,error) {
 	var token string
+	var err error
 	defer func(beginTime time.Time) {
 		level.Info(s.logger).Log(
 			"function", "Login",
 			"param:email", email,
 			"param:password", password,
-			"result", token,
+			"result:token", token,
+			"result:err",err,
 			"took", time.Since(beginTime))
 	}(time.Now())
 
-	userCred, err := data.GetUserCrediantals(ctx, email)
+	u, err := data.GetUserByEmail(ctx, email)
 	if err != nil {
-		if err == data.ErrCredentalNotFound {
+		if err == data.ErrUserNotFound {
 			return "" , ErrEmailNotFound
 		}
 		return "", err
 	}
-	if err := bcrypt.CompareHashAndPassword([]byte(userCred.Password), []byte(password)); err != nil {
+
+	if !u.Active {
+		return "", ErrInactiveAccount
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
 		return "", ErrWrongPassword
 	}
-	token,err = s.jwt.Tokenize(userCred.UserID)
+	token,err = s.jwt.Tokenize(u.ID)
 
 	return token,err
 }
@@ -134,11 +141,16 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 	if err != nil {
 		return "",err
 	}
-	cred, err := data.GetUserCrediantals(ctx, claim.Email)
+	u, err := data.GetUserByEmail(ctx, claim.Email)
 	
 	// If user exist, tokenize userId and returns it
 	if err == nil {		
-		return s.jwt.Tokenize(cred.UserID)
+		return s.jwt.Tokenize(u.ID)
+	}
+
+	// if error is not a notfound error then returns it
+	if err != nil && err != data.ErrUserNotFound {
+		return "",err
 	}
 
 	f := data.SignUpForm{
@@ -152,8 +164,6 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 		return "", err
 	}
 	f.GenerateUserID()
-	
-
 	
 	if err = data.CreateUser(ctx,f);  err != nil {
 		return "",err

@@ -14,14 +14,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const inactive = "inactive_"
 
 var (
 	_s Service
 	_todo = context.TODO()
-	_cred   = data.UserCredentials{
-		UserID: "test_user_id",
+	_user   = data.User{
+		ID: "test_user_id",
 		Email: "testuser@testmail.com",
 		Password: "testuserpassword",
+		Active: true,
 	}
 )
 
@@ -49,17 +51,31 @@ func TestMain(m *testing.M) {
 		panic(err)
 	}
 
-	p := _cred.Password // Store original password
-	if err := _cred.HashPassword(); err !=nil{
+	p := _user.Password // Store original password
+	if err := _user.HashPassword(); err !=nil{
 		panic(err)
 	}
-	if err := data.SaveUserCrediantals(_todo,_cred); err != nil {
+	if err := data.SaveUser(_todo,_user); err != nil {
 		panic(err)
 	}
-	_cred.Password = p // Set origianl password instead of hashed password after saving
+	// Inactive User
+	inactiveUser := data.User{
+		ID: inactive+_user.ID,
+		Email: inactive+_user.Email,
+		Password: _user.Password,
+		Active: false,
+	}
+	if err := data.SaveUser(_todo,inactiveUser); err != nil {
+		panic(err)
+	}
+	_user.Password = p
+	inactiveUser.Password = p
 	c := m.Run()
 
-	if err := data.RemoveUserCrediantals(_todo,_cred.UserID); err != nil {
+	if err := data.RemoveUser(_todo,_user.ID); err != nil {
+		panic(err)
+	}
+	if err := data.RemoveUser(_todo,inactiveUser.ID); err != nil {
 		panic(err)
 	}
 
@@ -73,12 +89,17 @@ func TestService_Login(t *testing.T) {
 		err error
 	}{
 		{
-			email:_cred.Email,
-			password: _cred.Password,
+			email:_user.Email,
+			password: _user.Password,
 			err: nil,
 		},
 		{
-			email: _cred.Email,
+			email:inactive+_user.Email,
+			password: _user.Password,
+			err: ErrInactiveAccount,
+		},
+		{
+			email: _user.Email,
 			password: "wrong_password",
 			err : ErrWrongPassword,
 		},
@@ -91,7 +112,7 @@ func TestService_Login(t *testing.T) {
 
 	for _,test := range tests {
 		token,err := _s.Login(_todo,test.email,test.password)
-		assert.Equal(t,err,test.err)
+		assert.Equal(t,test.err,err)
 		if test.err != nil {
 			assert.Equal(t,"",token)
 		} else {

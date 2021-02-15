@@ -79,15 +79,18 @@ func decodeVerifyRequest(_ context.Context,r *http.Request) (interface{},error) 
 
 
 func decodeAuthHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var u data.UserCredentials
+	var ep  struct{
+		Email string
+		Password string
+	}
 
-	if err := json.NewDecoder(r.Body).Decode(&u); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&ep); err != nil {
 		return nil, err
 	}
 
 	return endpoints.AuthRequest{
-		Email:    u.Email,
-		Password: u.Password,
+		Email:    ep.Email,
+		Password: ep.Password,
 	}, nil
 }
 

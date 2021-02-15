@@ -10,20 +10,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type UserCredentials struct {
-	UserID   string `json:"userId" bson:"id"`
-	Email    string `json:"email" bson:"email"`
-	Password string `json:"password" bson:"password"`
-}
 
-func (cred *UserCredentials) HashPassword() error {
-	newPasswd, err := hashPassword(cred.Password)
-	if err != nil {
-		return err
-	}
-	cred.Password = newPasswd
-	return nil
-}
+var (
+	ErrUserNotFound = errors.New("User not found")
+)
 
 type User struct {
 	ID            string   `json:"id"`
@@ -39,6 +29,15 @@ type User struct {
 	OAuth 		  bool     `json:"oauth"`	
 }
 
+
+func (u *User) HashPassword() error {
+	pwd, err := hashPassword(u.Password)
+	if err != nil {
+		return err
+	}
+	u.Password = pwd
+	return nil
+}
 
 
 func CreateUser(ctx context.Context,form SignUpForm) error {
@@ -59,19 +58,17 @@ func CreateUser(ctx context.Context,form SignUpForm) error {
 	return err
 }
 
-func GetUserCrediantals(ctx context.Context, email string) (*UserCredentials, error) {
-	res := db.Collection().FindOne(ctx, bson.M{"email": email})
-	var cred UserCredentials
-	err := res.Decode(&cred)
-	if err != nil {
+func GetUserByEmail(ctx context.Context,email string) (*User,error) {
+	r := db.Collection().FindOne(ctx, bson.M{"email": email})
+	var u User
+	if err := r.Decode(&u); err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, ErrCredentalNotFound
+			return nil,ErrUserNotFound
 		}
-		return nil, err
+		return nil,err
 	}
-	return &cred, nil
+	return &u,nil
 }
-
 
 func UpdateUserRecord(ctx context.Context, id, key string, value interface{}) error {
 	filter := bson.M{"id": id}
@@ -93,15 +90,17 @@ func UpdateUserRecord(ctx context.Context, id, key string, value interface{}) er
 	return nil
 }
 
+
+
 /* These two functions are using for testing. */
 
 
-func SaveUserCrediantals(ctx context.Context,cred UserCredentials) error {
-	_, err := db.Collection().InsertOne(ctx,cred)
+func SaveUser(ctx context.Context,user User) error {
+	_, err := db.Collection().InsertOne(ctx,user)
 	return err
 }
 
-func RemoveUserCrediantals(ctx context.Context,userId string) error {
+func RemoveUser(ctx context.Context,userId string) error {
 	res,err :=db.Collection().DeleteOne(ctx,bson.M{"id":userId})
 	if res.DeletedCount == 0 {
 		return errors.New("no doc deleted")
