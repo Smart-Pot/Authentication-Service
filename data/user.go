@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/Smart-Pot/pkg/db"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -54,12 +55,12 @@ func CreateUser(ctx context.Context,form SignUpForm) error {
 		Active: false,
 		OAuth: form.IsOAuth,
 	}
-	_, err := collection.InsertOne(ctx, u)
+	_, err := db.Collection().InsertOne(ctx, u)
 	return err
 }
 
 func GetUserCrediantals(ctx context.Context, email string) (*UserCredentials, error) {
-	res := collection.FindOne(ctx, bson.M{"email": email})
+	res := db.Collection().FindOne(ctx, bson.M{"email": email})
 	var cred UserCredentials
 	err := res.Decode(&cred)
 	if err != nil {
@@ -79,7 +80,7 @@ func UpdateUserRecord(ctx context.Context, id, key string, value interface{}) er
 		key: value,
 	}}
 
-	res, err := collection.UpdateOne(ctx, filter, updateUser)
+	res, err := db.Collection().UpdateOne(ctx, filter, updateUser)
 
 	if res.ModifiedCount <= 0 {
 		return errors.New("record can not updated")
@@ -96,12 +97,12 @@ func UpdateUserRecord(ctx context.Context, id, key string, value interface{}) er
 
 
 func SaveUserCrediantals(ctx context.Context,cred UserCredentials) error {
-	_, err := collection.InsertOne(ctx,cred)
+	_, err := db.Collection().InsertOne(ctx,cred)
 	return err
 }
 
 func RemoveUserCrediantals(ctx context.Context,userId string) error {
-	res,err :=collection.DeleteOne(ctx,bson.M{"id":userId})
+	res,err :=db.Collection().DeleteOne(ctx,bson.M{"id":userId})
 	if res.DeletedCount == 0 {
 		return errors.New("no doc deleted")
 	}

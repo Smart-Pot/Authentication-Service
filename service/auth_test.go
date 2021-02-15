@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/Smart-Pot/pkg"
+	"github.com/Smart-Pot/pkg/db"
 	"github.com/go-kit/kit/log"
 	"github.com/stretchr/testify/assert"
 )
@@ -40,9 +41,13 @@ func TestMain(m *testing.M) {
 
 	wd,_ := os.Getwd()
 	pkg.ConfigOptions.BaseDir = filepath.Join(wd,"..","config")
-	pkg.Config.ReadConfig()
+	if err := pkg.Config.ReadConfig(); err != nil {
+		panic(err)
+	}
 
-	data.DatabaseConnection()
+	if err := db.Connect(db.PkgConfig("users")); err != nil {
+		panic(err)
+	}
 
 	p := _cred.Password // Store original password
 	if err := _cred.HashPassword(); err !=nil{
