@@ -8,6 +8,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+
+
 type SignUpForm struct {
 	UserID    string
 	FirstName string `json:"firstname" validate:"is-name,required"`
@@ -19,8 +21,8 @@ type SignUpForm struct {
 
 func (s *SignUpForm) Validate() error {
 	v := validator.New()
-	v.RegisterValidation("is-name", validateName)
-	v.RegisterValidation("is-passwd", validateName)
+	v.RegisterValidation("is-name", nameValidator)
+	v.RegisterValidation("is-passwd", passwordValidator)
 
 	return v.Struct(s)
 }
@@ -38,19 +40,48 @@ func (s *SignUpForm) GenerateUserID() {
 	s.UserID = uuid.NewString()
 }
 
-var nameValidationReg = regexp.MustCompile("^[a-zA-Z,ç,Ç,ğ,Ğ,ı,İ,ö,Ö,ş,Ş,ü,Ü]*$")
-var passwordValidationReg = regexp.MustCompile("^[a-zA-Z,ç,Ç,ğ,Ğ,ı,İ,ö,Ö,ş,Ş,ü,Ü]*$")
 
-func validateName(fl validator.FieldLevel) bool {
+func nameValidator(fl validator.FieldLevel) bool {
 	s := fl.Field().String()
-	return nameValidationReg.MatchString(s)
+	return nameRegexp.MatchString(s)
 }
 
-func validatePassword(fl validator.FieldLevel) bool {
+func passwordValidator(fl validator.FieldLevel) bool {
 	s := fl.Field().String()
-	return passwordValidationReg.MatchString(s)
+	return validatePassword(s)
 }
 
+const (
+	symbols = `\.\*\_`
+)
+
+var (
+	nameRegexp = regexp.MustCompile("^[a-zA-Z,ç,Ç,ğ,Ğ,ı,İ,ö,Ö,ş,Ş,ü,Ü]*$")
+	upperCaseRegexp = regexp.MustCompile("[A-Z]")
+	lowerCaseRegexp = regexp.MustCompile("[a-z]")
+	digitRegexp = regexp.MustCompile("[0-9]")
+	symbolRegexp = regexp.MustCompile("["+symbols+"]") // TODO add more symbols 
+	passwdRegexp = regexp.MustCompile("^["+symbols+"A-Za-z0-9]*.{6,}$")
+)
+
+func validatePassword(pwd string)bool {
+	if !passwdRegexp.MatchString(pwd) {
+		return false
+	}
+	if !upperCaseRegexp.MatchString(pwd) {
+		return false
+	}
+	if !lowerCaseRegexp.MatchString(pwd) {
+		return false
+	}
+	if !digitRegexp.MatchString(pwd) {
+		return false
+	}
+	if !symbolRegexp.MatchString(pwd) {
+		return false
+	}
+	return true
+}
 func hashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err != nil {
