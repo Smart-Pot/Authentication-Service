@@ -7,11 +7,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/Smart-Pot/jwtservice"
 	"github.com/Smart-Pot/pkg/adapter/amqp"
 	"github.com/Smart-Pot/pkg/tool/crypto"
 	"github.com/go-kit/kit/log"
+	"github.com/go-kit/kit/log/level"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -22,6 +24,8 @@ var (
 	ErrWrongPassword = errors.New("Password is wrong for given email")
 	// ErrEmailNotFound codes returned when there is no user with the given email
 	ErrEmailNotFound = errors.New("Not found an account by given email")
+	// ErrNotVerified codes returned when the user tries to log in inactive account
+	ErrNotVerified = errors.New("Account not verified")
 )
 
 type service struct {
@@ -34,6 +38,7 @@ type Service interface {
 	LoginWithGoogle(ctx context.Context,token string)(string,error)
 	Login(ctx context.Context, email, password string) (string,error)
 	SignUp(ctx context.Context, form data.SignUpForm) error
+	Verify(ctx context.Context,hash string) error	
 }
 
 // NewService creates a new service for given parameters
@@ -89,6 +94,16 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 
 // Login gets email and password, and generate JWT for userId
 func (s *service) Login(ctx context.Context, email, password string) (string,error) {
+	var token string
+	defer func(beginTime time.Time) {
+		level.Info(s.logger).Log(
+			"function", "Login",
+			"param:email", email,
+			"param:password", password,
+			"result", token,
+			"took", time.Since(beginTime))
+	}(time.Now())
+
 	userCred, err := data.GetUserCrediantals(ctx, email)
 	if err != nil {
 		if err == data.ErrCredentalNotFound {
@@ -99,12 +114,22 @@ func (s *service) Login(ctx context.Context, email, password string) (string,err
 	if err := bcrypt.CompareHashAndPassword([]byte(userCred.Password), []byte(password)); err != nil {
 		return "", ErrWrongPassword
 	}
-	return s.jwt.Tokenize(userCred.UserID)
+	token,err = s.jwt.Tokenize(userCred.UserID)
+
+	return token,err
 }
 
 
 func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,error) {
-	
+	var result string
+	defer func(beginTime time.Time) {
+		level.Info(s.logger).Log(
+			"function", "Login",
+			"param:token", token,
+			"result", result,
+			"took", time.Since(beginTime))
+	}(time.Now())
+
 	claim,err := oauth.ValidateGoogleJWT(token)
 	if err != nil {
 		return "",err
@@ -134,8 +159,26 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 		return "",err
 	}
 
-	return s.jwt.Tokenize(f.UserID)
+	result,err = s.jwt.Tokenize(f.UserID)
+	return result,err
 }
 
 
- 
+func (s service) Verify(ctx context.Context, hash string) error {
+	var err error
+	defer func(beginTime time.Time) {
+		level.Info(s.logger).Log(
+			"function", "Login",
+			"param:token", hash,
+			"result", err,
+			"took", time.Since(beginTime))
+	}(time.Now())
+	id, err := crypto.Decrypt(hash)
+	if err != nil {
+		return err
+	}
+	if err := data.UpdateUserRecord(ctx, id, "active", true); err != nil {
+		return err
+	}
+	return nil
+}

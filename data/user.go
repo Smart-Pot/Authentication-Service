@@ -72,6 +72,26 @@ func GetUserCrediantals(ctx context.Context, email string) (*UserCredentials, er
 }
 
 
+func UpdateUserRecord(ctx context.Context, id, key string, value interface{}) error {
+	filter := bson.M{"id": id}
+
+	updateUser := bson.M{"$set": bson.M{
+		key: value,
+	}}
+
+	res, err := collection.UpdateOne(ctx, filter, updateUser)
+
+	if res.ModifiedCount <= 0 {
+		return errors.New("record can not updated")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 /* These two functions are using for testing. */
 
 

@@ -44,6 +44,13 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		options...,
 	))
 
+	r.Methods("POST").Path("/verify/{hash}").Handler(httptransport.NewServer(
+		e.Verify,
+		decodeVerifyRequest,
+		encodeHTTPResponse,
+		options...
+	))
+
 	return r
 }
 
@@ -59,6 +66,17 @@ func decodeOAuthHTTPRequest(_ context.Context,r *http.Request) (interface{}, err
 		Token: t,
 	},nil
 }
+
+
+func decodeVerifyRequest(_ context.Context,r *http.Request) (interface{},error) {
+	vars := mux.Vars(r)
+	h := vars["hash"]
+	return endpoints.VerifyRequest{
+		Hash : h,
+	},nil
+
+}
+
 
 func decodeAuthHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var u data.UserCredentials

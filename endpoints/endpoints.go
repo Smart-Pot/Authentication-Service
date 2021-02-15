@@ -11,6 +11,7 @@ type Endpoints struct {
 	Login  endpoint.Endpoint
 	SignUp endpoint.Endpoint
 	LoginWithGoogle endpoint.Endpoint
+	Verify endpoint.Endpoint
 }
 
 type AuthResponse struct {
@@ -28,6 +29,10 @@ type OAuth2Request struct {
 	Token string
 }
 
+type VerifyRequest struct {
+	Hash string
+}
+
 type NewUserRequest struct {
 	NewUser data.SignUpForm
 }
@@ -37,5 +42,6 @@ func MakeEndpoints(s service.Service) Endpoints {
 		Login:  makeLoginEndpoint(s),
 		SignUp: makeSignUpEndpoint(s),
 		LoginWithGoogle: makeLoginWithGoogleEndpoint(s),
+		Verify: makeVerifyEndpoint(s),
 	}
 }
