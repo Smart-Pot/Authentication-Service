@@ -8,7 +8,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const (
+	symbols = `\.\*\_`
+)
 
+var (
+	nameRegexp = regexp.MustCompile("^[a-zA-Z,ç,Ç,ğ,Ğ,ı,İ,ö,Ö,ş,Ş,ü,Ü]*$")
+	upperCaseRegexp = regexp.MustCompile("[A-Z]")
+	lowerCaseRegexp = regexp.MustCompile("[a-z]")
+	digitRegexp = regexp.MustCompile("[0-9]")
+	symbolRegexp = regexp.MustCompile("["+symbols+"]") // TODO add more symbols 
+	passwdRegexp = regexp.MustCompile("^["+symbols+"A-Za-z0-9]*.{6,}$")
+)
 
 type SignUpForm struct {
 	UserID    string
@@ -48,23 +59,12 @@ func nameValidator(fl validator.FieldLevel) bool {
 
 func passwordValidator(fl validator.FieldLevel) bool {
 	s := fl.Field().String()
-	return validatePassword(s)
+	return ValidatePassword(s)
 }
 
-const (
-	symbols = `\.\*\_`
-)
 
-var (
-	nameRegexp = regexp.MustCompile("^[a-zA-Z,ç,Ç,ğ,Ğ,ı,İ,ö,Ö,ş,Ş,ü,Ü]*$")
-	upperCaseRegexp = regexp.MustCompile("[A-Z]")
-	lowerCaseRegexp = regexp.MustCompile("[a-z]")
-	digitRegexp = regexp.MustCompile("[0-9]")
-	symbolRegexp = regexp.MustCompile("["+symbols+"]") // TODO add more symbols 
-	passwdRegexp = regexp.MustCompile("^["+symbols+"A-Za-z0-9]*.{6,}$")
-)
 
-func validatePassword(pwd string)bool {
+func ValidatePassword(pwd string)bool {
 	if !passwdRegexp.MatchString(pwd) {
 		return false
 	}

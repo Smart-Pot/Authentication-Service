@@ -26,11 +26,14 @@ var (
 	ErrEmailNotFound = errors.New("Not found an account by given email")
 	// ErrInactiveAccount codes returned when the user tries to log in inactive account
 	ErrInactiveAccount = errors.New("Email address not verified")
+	// ErrInvalidPwd :
+	ErrInvalidPwd = errors.New("Password is not valid")
 )
 
 type service struct {
 	logger   log.Logger
-	producer amqp.Producer
+	verifyProducer amqp.Producer
+	forgotProducer amqp.Producer
 	verificationTimeout time.Duration
 }
 // Service represents an authentication service 
@@ -42,10 +45,11 @@ type Service interface {
 }
 
 // NewService creates a new service for given parameters
-func NewService(logger log.Logger, producer amqp.Producer) Service {
+func NewService(logger log.Logger, verifyProducer,forgotProducer amqp.Producer) Service {
 	return &service{
 		logger:   logger,
-		producer: producer,
+		forgotProducer: forgotProducer,
+		verifyProducer : verifyProducer,
 		verificationTimeout: 48*time.Hour,
 	}
 }
@@ -94,7 +98,70 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 
 	b, _ := json.Marshal(r)
 
-	return s.producer.Produce(b)	
+	return s.verifyProducer.Produce(b)	
+}
+
+func (s *service) ForgotPassword(ctx context.Context,email string)  error {
+	var err error
+	defer func(beginTime time.Time) {
+		level.Info(s.logger).Log(
+			"function", "ForgorPassword",
+			"param:email", email,
+			"result:err",err,
+			"took", time.Since(beginTime))
+	}(time.Now())
+	_,err = data.GetUserByEmail(ctx,email)
+	if err != nil {
+		return err 
+	}
+
+	h,err := crypto.ForgotPwdCip.Encrypt(email)
+	if err != nil {
+		return err
+	}
+
+	if err = s.forgotProducer.Produce([]byte(h)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *service) UpdatePassword(ctx context.Context,hash,newPwd string) error {
+	var err error
+	defer func(beginTime time.Time) {
+		level.Info(s.logger).Log(
+			"function", "ForgorPassword",
+			"param:hash", hash,
+			"result:err",err,
+			"took", time.Since(beginTime))
+	}(time.Now())
+	
+	email, err := crypto.ForgotPwdCip.Decrypt(hash);
+	if  err != nil {
+		return err
+	}
+
+	u,err := data.GetUserByEmail(ctx,email)
+
+	if err != nil {
+		return err
+	}
+
+	if !data.ValidatePassword(newPwd) {
+		return ErrInvalidPwd
+	}
+
+	f := data.SignUpForm{}
+	f.Password = newPwd
+	if err = f.HashPassword(); err != nil {
+		return err
+	}
+
+	if err = data.UpdateUserRecord(ctx,u.ID,"password",f.Password); err  != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Login gets email and password, and generate JWT for userId
