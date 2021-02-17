@@ -33,7 +33,7 @@ func main() {
 	if err := oauth.ReadConfig(filepath.Join(wd, "config")); err != nil {
 		log.Fatal(err)
 	}
-	log.Panicln("OAuth module is set")
+	log.Println("OAuth module is set")
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, os.Kill)

@@ -3,8 +3,7 @@ module authservice
 go 1.15
 
 require (
-	github.com/Smart-Pot/jwtservice v0.0.0-20210205143835-32d13ce8bf0e
-	github.com/Smart-Pot/pkg v0.0.0-20210215114352-86d41219cfd9
+	github.com/Smart-Pot/pkg v0.0.0-20210217083545-d006945d7fb9
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-kit/kit v0.10.0
@@ -27,7 +26,7 @@ require (
 	golang.org/x/net v0.0.0-20201021035429-f5854403a974 // indirect
 	golang.org/x/oauth2 v0.0.0-20210210192628-66670185b0cd
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9 // indirect
-	golang.org/x/sys v0.0.0-20210124154548-22da62e12c0c // indirect
+	golang.org/x/sys v0.0.0-20210216224549-f992740a1bac // indirect
 	golang.org/x/text v0.3.5 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect

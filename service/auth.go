@@ -9,9 +9,9 @@ import (
 	"errors"
 	"time"
 
-	"github.com/Smart-Pot/jwtservice"
 	"github.com/Smart-Pot/pkg/adapter/amqp"
 	"github.com/Smart-Pot/pkg/tool/crypto"
+	"github.com/Smart-Pot/pkg/tool/jwt"
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 	"golang.org/x/crypto/bcrypt"
@@ -30,7 +30,6 @@ var (
 
 type service struct {
 	logger   log.Logger
-	jwt      *jwtservice.JwtService
 	producer amqp.Producer
 }
 // Service represents an authentication service 
@@ -45,7 +44,6 @@ type Service interface {
 func NewService(logger log.Logger, producer amqp.Producer) Service {
 	return &service{
 		logger:   logger,
-		jwt : jwtservice.New(),
 		producer: producer,
 	}
 }
@@ -74,7 +72,7 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	}
 
 	// Hash user id for verification mail
-	h, err := crypto.Encrypt(form.UserID)
+	h, err := crypto.VerifyMailCip.Encrypt(form.UserID)
 	if err != nil {
 		return err
 	}
@@ -121,7 +119,14 @@ func (s *service) Login(ctx context.Context, email, password string) (string,err
 	if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)); err != nil {
 		return "", ErrWrongPassword
 	}
-	token,err = s.jwt.Tokenize(u.ID)
+
+	tkn := &jwt.AuthToken {
+		UserID: u.ID,
+		DeviceIDs: u.Devices,
+		Authorization: u.Authorization,
+	}
+
+	token,err = jwt.Tokenize(tkn)
 
 	return token,err
 }
@@ -144,8 +149,13 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 	u, err := data.GetUserByEmail(ctx, claim.Email)
 	
 	// If user exist, tokenize userId and returns it
-	if err == nil {		
-		return s.jwt.Tokenize(u.ID)
+	if err == nil {	
+		tkn := &jwt.AuthToken{
+			UserID: u.ID,
+			DeviceIDs: u.Devices,
+			Authorization: u.Authorization,
+		}	
+		return jwt.Tokenize(tkn)
 	}
 
 	// if error is not a notfound error then returns it
@@ -168,8 +178,12 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 	if err = data.CreateUser(ctx,f);  err != nil {
 		return "",err
 	}
-
-	result,err = s.jwt.Tokenize(f.UserID)
+	tkn := &jwt.AuthToken{
+		UserID: f.UserID,
+		DeviceIDs: []string{""},
+		Authorization: 0,
+	}	
+	result,err = jwt.Tokenize(tkn)
 	return result,err
 }
 
@@ -183,7 +197,7 @@ func (s service) Verify(ctx context.Context, hash string) error {
 			"result", err,
 			"took", time.Since(beginTime))
 	}(time.Now())
-	id, err := crypto.Decrypt(hash)
+	id, err := crypto.VerifyMailCip.Decrypt(hash)
 	if err != nil {
 		return err
 	}
