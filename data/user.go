@@ -51,7 +51,7 @@ func CreateUser(ctx context.Context,form SignUpForm) error {
 		Image: "",
 		Devices: nil,
 		Authorization: 0,
-		Active: false,
+		Active: form.IsOAuth,
 		OAuth: form.IsOAuth,
 	}
 	_, err := db.Collection().InsertOne(ctx, u)

@@ -31,6 +31,7 @@ var (
 type service struct {
 	logger   log.Logger
 	producer amqp.Producer
+	verificationTimeout time.Duration
 }
 // Service represents an authentication service 
 type Service interface {
@@ -45,17 +46,23 @@ func NewService(logger log.Logger, producer amqp.Producer) Service {
 	return &service{
 		logger:   logger,
 		producer: producer,
+		verificationTimeout: 48*time.Hour,
 	}
 }
 
 // SignUp gets a form data and verify it and notify amqp server
 func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
-	// Try to find a user who has that email
-	_, err := data.GetUserByEmail(ctx, form.Email)
-	// If a cred is founded than return email taken error
-	if err == nil {
-		return ErrEmailTaken
-	}
+	u, err := data.GetUserByEmail(ctx, form.Email)
+    // If a cred is founded than return email taken error
+    if err == nil {
+		const layout = "2021-02-08 01:02:15.0271274 +0000 UTC"
+        ct, _ := time.Parse(layout, u.Date)
+        if u.Active || (time.Since(ct) < s.verificationTimeout) {
+            return ErrEmailTaken
+        }
+        data.RemoveUser(ctx, u.ID)
+    }
+
 
 	// if err is not credental not found, return 'err'	
 	if err != nil && err != data.ErrUserNotFound {
