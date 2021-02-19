@@ -58,3 +58,18 @@ func makeVerifyEndpoint(s service.Service) endpoint.Endpoint {
 		return resp,nil
 	}
 }
+
+
+func makeResolveEndpoint(s service.Service) endpoint.Endpoint {
+	return func (ctx context.Context,request interface{}) (interface{},error)  {
+		req := request.(OAuth2Request)
+		resp := AuthResponse{Success: 1,Message: "User verified"} 
+		at ,err  := s.Resolve(ctx,req.Token)
+		if err != nil {
+			return nil ,err
+		}
+		resp.Token = at.UserID
+		return resp,nil
+	}
+
+}

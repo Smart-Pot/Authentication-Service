@@ -53,7 +53,7 @@ func TestValidatePassword(t *testing.T) {
 		{"Ss.1",false},
 	}
 	for _,ti := range tests {
-		assert.Equal(t,ti.ok,validatePassword(ti.s),"For "+ti.s)
+		assert.Equal(t,ti.ok,ValidatePassword(ti.s),"For "+ti.s)
 	}
 
 }

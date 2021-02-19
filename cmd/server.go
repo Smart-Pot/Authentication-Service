@@ -23,13 +23,13 @@ func startServer() error {
 	logger = log.With(logger, "caller", log.DefaultCaller)
 
 	// Make producer for service
-	producer, err := amqp.MakeProducer("VerificationMail")
-
+	verifyProducer, err := amqp.MakeProducer("VerificationMail")
+	forgotProducer, err := amqp.MakeProducer("ForgotPassword")
 	if err != nil {
 		return err
 	}
 
-	service := service.NewService(logger, producer)
+	service := service.NewService(logger, verifyProducer,forgotProducer)
 	endpoint := endpoints.MakeEndpoints(service)
 	handler := transport.MakeHTTPHandlers(endpoint, logger)
 

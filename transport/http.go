@@ -5,6 +5,8 @@ import (
 	"authservice/endpoints"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-kit/kit/log"
@@ -51,6 +53,13 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		options...
 	))
 
+	r.Methods("GET").Path("/").Handler(httptransport.NewServer(
+		e.Resolve,
+		decodeAuthHTTPRequest,
+		encodeHTTPResponse,
+		options...,
+	))
+
 	return r
 }
 
@@ -77,6 +86,15 @@ func decodeVerifyRequest(_ context.Context,r *http.Request) (interface{},error) 
 
 }
 
+func decodeResolveHTTPRequest(_ context.Context, r *http.Request) (interface{},error) {
+	jwt := r.Header.Get("x-auth-token")
+	if jwt == "" {
+		return nil,errors.New("token not found")
+	}
+	return endpoints.OAuth2Request {
+		Token: jwt,
+	},nil
+}
 
 func decodeAuthHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var ep  struct{
@@ -106,9 +124,8 @@ func decodeNewUserHTTPRequest(_ context.Context, r *http.Request) (interface{}, 
 }
 
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
-	if err == nil {
-		panic("encodeError with nil error")
-	}
+	fmt.Println("FO:UN: ERROR  http.go:127")
+	w.WriteHeader(403)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusBadRequest)
 	json.NewEncoder(w).Encode(map[string]interface{}{

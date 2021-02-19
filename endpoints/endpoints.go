@@ -12,6 +12,7 @@ type Endpoints struct {
 	SignUp endpoint.Endpoint
 	LoginWithGoogle endpoint.Endpoint
 	Verify endpoint.Endpoint
+	Resolve endpoint.Endpoint
 }
 
 type AuthResponse struct {

@@ -42,6 +42,7 @@ type Service interface {
 	Login(ctx context.Context, email, password string) (string,error)
 	SignUp(ctx context.Context, form data.SignUpForm) error
 	Verify(ctx context.Context,hash string) error	
+	Resolve(ctx context.Context,token string) (*jwt.AuthToken,error)
 }
 
 // NewService creates a new service for given parameters
@@ -100,6 +101,26 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 
 	return s.verifyProducer.Produce(b)	
 }
+
+func (s *service) Resolve(ctx context.Context,tokenStr string) (*jwt.AuthToken,error) {
+	var err error
+	var at *jwt.AuthToken
+	defer func(beginTime time.Time) {
+		level.Info(s.logger).Log(
+			"function", "ForgorPassword",
+			"param:email", tokenStr,
+			"result:err",err,
+			"result:tkn",at,
+
+			"took", time.Since(beginTime))
+	}(time.Now())
+
+	at,err =jwt.Verify(tokenStr)
+	if err != nil {
+		return nil,err
+	}
+	return at,nil
+}	
 
 func (s *service) ForgotPassword(ctx context.Context,email string)  error {
 	var err error
