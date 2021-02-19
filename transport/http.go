@@ -56,7 +56,7 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 	r.Methods("GET").Path("/").Handler(httptransport.NewServer(
 		e.Resolve,
 		decodeAuthHTTPRequest,
-		encodeHTTPResponse,
+		encodeResolveHTTPResponse,
 		options...,
 	))
 
@@ -66,6 +66,13 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 func encodeHTTPResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(response)
+}
+
+func encodeResolveHTTPResponse(ctx context.Context,w http.ResponseWriter,response interface{}) error {
+	a := response.(endpoints.AuthResponse)
+	w.Header().Set("X-Forwarded-User",a.Token)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	return nil
 }
 
 func decodeOAuthHTTPRequest(_ context.Context,r *http.Request) (interface{}, error) {
