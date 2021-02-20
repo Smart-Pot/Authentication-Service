@@ -13,8 +13,7 @@ func makeLoginEndpoint(s service.Service) endpoint.Endpoint {
 		result, err := s.Login(ctx, req.Email, req.Password)
 		response := AuthResponse{Token: result, Success: 1, Message: "Login Successful!"}
 		if err != nil {
-			response.Success = 0
-			response.Message = err.Error()
+			return nil,err
 		}
 		return response, nil
 	}
@@ -26,8 +25,7 @@ func makeSignUpEndpoint(s service.Service) endpoint.Endpoint {
 		err := s.SignUp(ctx, req.NewUser)
 		response := AuthResponse{Token: "", Success: 1, Message: "SignUp Successful!"}
 		if err != nil {
-			response.Success = 0
-			response.Message = err.Error()
+			return nil,err
 		}
 		return response, nil
 	}
@@ -39,8 +37,7 @@ func makeLoginWithGoogleEndpoint(s service.Service) endpoint.Endpoint {
 		result, err := s.LoginWithGoogle(ctx,req.Token)
 		response := AuthResponse{Token: result, Success: 1, Message: "Login Successful!"}
 		if err != nil {
-			response.Success = 0
-			response.Message = err.Error()
+			return nil,err
 		}
 		return response, nil
 	}
@@ -52,8 +49,7 @@ func makeVerifyEndpoint(s service.Service) endpoint.Endpoint {
 		req := request.(VerifyRequest)
 		resp := AuthResponse{Success: 1,Message: "User verified"} 
 		if err := s.Verify(ctx,req.Hash); err != nil {
-			resp.Message = err.Error()
-			resp.Success = 0
+			return nil,err
 		}
 		return resp,nil
 	}

@@ -6,8 +6,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
+
+	"github.com/Smart-Pot/pkg/common/constants"
+	"github.com/Smart-Pot/pkg/common/perrors"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/transport"
@@ -15,14 +17,18 @@ import (
 	"github.com/gorilla/mux"
 )
 
-const userIDTag = "x-user-id"
+
+var (
+	errTokenNotFound = errors.New("token not found")
+)
+
 
 func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 	r := mux.NewRouter().PathPrefix("/auth").Subrouter()
 
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
-		httptransport.ServerErrorEncoder(encodeError),
+		httptransport.ServerErrorEncoder(perrors.EncodeHTTPError),
 	}
 
 	r.Methods("POST").Path("/login").Handler(httptransport.NewServer(
@@ -55,7 +61,7 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 
 	r.Methods("GET").Path("/").Handler(httptransport.NewServer(
 		e.Resolve,
-		decodeAuthHTTPRequest,
+		decodeResolveHTTPRequest,
 		encodeResolveHTTPResponse,
 		options...,
 	))
@@ -70,14 +76,13 @@ func encodeHTTPResponse(ctx context.Context, w http.ResponseWriter, response int
 
 func encodeResolveHTTPResponse(ctx context.Context,w http.ResponseWriter,response interface{}) error {
 	a := response.(endpoints.AuthResponse)
-	w.Header().Set("X-Forwarded-User",a.Token)
+	w.Header().Set(constants.UserIDHeaderKey,a.Token)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return nil
 }
 
 func decodeOAuthHTTPRequest(_ context.Context,r *http.Request) (interface{}, error) {
-	const tn = "x-oauth-token"
-	t := r.Header.Get(tn) 
+	t := r.Header.Get(constants.OAuthHeaderKey) 
 	return endpoints.OAuth2Request{
 		Token: t,
 	},nil
@@ -94,9 +99,9 @@ func decodeVerifyRequest(_ context.Context,r *http.Request) (interface{},error) 
 }
 
 func decodeResolveHTTPRequest(_ context.Context, r *http.Request) (interface{},error) {
-	jwt := r.Header.Get("x-auth-token")
+	jwt := r.Header.Get(constants.TokenHeaderKey)
 	if jwt == "" {
-		return nil,errors.New("token not found")
+		return nil,perrors.New("token not found in header",http.StatusBadRequest)
 	}
 	return endpoints.OAuth2Request {
 		Token: jwt,
@@ -130,12 +135,3 @@ func decodeNewUserHTTPRequest(_ context.Context, r *http.Request) (interface{}, 
 	}, nil
 }
 
-func encodeError(_ context.Context, err error, w http.ResponseWriter) {
-	fmt.Println("FO:UN: ERROR  http.go:127")
-	w.WriteHeader(403)
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"error": err.Error(),
-	})
-}

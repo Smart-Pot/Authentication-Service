@@ -6,10 +6,11 @@ import (
 	"authservice/service/oauth"
 	"context"
 	"encoding/json"
-	"errors"
+	"net/http"
 	"time"
 
 	"github.com/Smart-Pot/pkg/adapter/amqp"
+	"github.com/Smart-Pot/pkg/common/perrors"
 	"github.com/Smart-Pot/pkg/tool/crypto"
 	"github.com/Smart-Pot/pkg/tool/jwt"
 	"github.com/go-kit/kit/log"
@@ -19,15 +20,21 @@ import (
 
 var (
 	// ErrEmailTaken codes returned by failures when email is already is taken
-	ErrEmailTaken = errors.New("Email is already taken")
+	ErrEmailTaken = perrors.New("Email is already taken",http.StatusBadRequest)
 	// ErrWrongPassword codes returned by failures for wrong password
-	ErrWrongPassword = errors.New("Password is wrong for given email")
+	ErrWrongPassword = perrors.New("Password is wrong for given email",http.StatusForbidden)
 	// ErrEmailNotFound codes returned when there is no user with the given email
-	ErrEmailNotFound = errors.New("Not found an account by given email")
+	ErrEmailNotFound = perrors.New("Not found an account by given email",http.StatusForbidden)
 	// ErrInactiveAccount codes returned when the user tries to log in inactive account
-	ErrInactiveAccount = errors.New("Email address not verified")
+	ErrInactiveAccount = perrors.New("Email address not verified",http.StatusForbidden)
 	// ErrInvalidPwd :
-	ErrInvalidPwd = errors.New("Password is not valid")
+	ErrInvalidPwd = perrors.New("Password is not valid",http.StatusBadRequest)
+	// ErrInvalidHash :
+	ErrInvalidHash = perrors.New("Hash can not be decrypted",http.StatusBadRequest)
+	// ErrInvalidToken :
+	ErrInvalidToken = perrors.New("Token can not be resolved", http.StatusBadRequest) 
+	// 
+	errServer = perrors.FromStatusCode(http.StatusInternalServerError)
 )
 
 type service struct {
@@ -117,7 +124,7 @@ func (s *service) Resolve(ctx context.Context,tokenStr string) (*jwt.AuthToken,e
 
 	at,err =jwt.Verify(tokenStr)
 	if err != nil {
-		return nil,err
+		return nil,ErrInvalidToken
 	}
 	return at,nil
 }	
@@ -133,7 +140,7 @@ func (s *service) ForgotPassword(ctx context.Context,email string)  error {
 	}(time.Now())
 	_,err = data.GetUserByEmail(ctx,email)
 	if err != nil {
-		return err 
+		return errServer
 	}
 
 	h,err := crypto.ForgotPwdCip.Encrypt(email)
@@ -159,13 +166,16 @@ func (s *service) UpdatePassword(ctx context.Context,hash,newPwd string) error {
 	
 	email, err := crypto.ForgotPwdCip.Decrypt(hash);
 	if  err != nil {
-		return err
+		if err == data.ErrUserNotFound {
+			return ErrEmailNotFound
+		}
+		return errServer
 	}
 
 	u,err := data.GetUserByEmail(ctx,email)
 
 	if err != nil {
-		return err
+		return errServer
 	}
 
 	if !data.ValidatePassword(newPwd) {
@@ -175,11 +185,11 @@ func (s *service) UpdatePassword(ctx context.Context,hash,newPwd string) error {
 	f := data.SignUpForm{}
 	f.Password = newPwd
 	if err = f.HashPassword(); err != nil {
-		return err
+		return perrors.FromStatusCode(http.StatusInternalServerError)
 	}
 
 	if err = data.UpdateUserRecord(ctx,u.ID,"password",f.Password); err  != nil {
-		return err
+		return errServer
 	}
 
 	return nil
@@ -204,7 +214,7 @@ func (s *service) Login(ctx context.Context, email, password string) (string,err
 		if err == data.ErrUserNotFound {
 			return "" , ErrEmailNotFound
 		}
-		return "", err
+		return "", errServer
 	}
 
 	if !u.Active {
@@ -223,7 +233,7 @@ func (s *service) Login(ctx context.Context, email, password string) (string,err
 
 	token,err = jwt.Tokenize(tkn)
 
-	return token,err
+	return token,errServer
 }
 
 
@@ -239,7 +249,7 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 
 	claim,err := oauth.ValidateGoogleJWT(token)
 	if err != nil {
-		return "",err
+		return "", errServer
 	}
 	u, err := data.GetUserByEmail(ctx, claim.Email)
 	
@@ -279,7 +289,10 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 		Authorization: 0,
 	}	
 	result,err = jwt.Tokenize(tkn)
-	return result,err
+	if err != nil {
+		return "", ErrInvalidToken
+	}
+	return result,nil
 }
 
 
@@ -294,10 +307,13 @@ func (s service) Verify(ctx context.Context, hash string) error {
 	}(time.Now())
 	id, err := crypto.VerifyMailCip.Decrypt(hash)
 	if err != nil {
-		return err
+		return ErrInvalidHash
 	}
 	if err := data.UpdateUserRecord(ctx, id, "active", true); err != nil {
-		return err
+		if err == data.ErrUserNotFound {
+			return ErrInvalidHash
+		}
+		return errServer
 	}
 	return nil
 }

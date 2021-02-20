@@ -39,7 +39,7 @@ func (p *mockProducer) Produce(b []byte) error {
 func TestMain(m *testing.M) {
 
 	l := log.NewJSONLogger(ioutil.Discard)
-	_s = NewService(l,&mockProducer{})
+	_s = NewService(l,&mockProducer{},&mockProducer{})
 
 	wd,_ := os.Getwd()
 	pkg.ConfigOptions.BaseDir = filepath.Join(wd,"..","config")

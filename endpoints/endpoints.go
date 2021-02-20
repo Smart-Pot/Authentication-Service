@@ -44,5 +44,6 @@ func MakeEndpoints(s service.Service) Endpoints {
 		SignUp: makeSignUpEndpoint(s),
 		LoginWithGoogle: makeLoginWithGoogleEndpoint(s),
 		Verify: makeVerifyEndpoint(s),
+		Resolve: makeResolveEndpoint(s),
 	}
 }
