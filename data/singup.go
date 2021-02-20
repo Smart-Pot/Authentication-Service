@@ -82,6 +82,11 @@ func ValidatePassword(pwd string)bool {
 	}
 	return true
 }
+
+func ValidateEmail(email string) bool {
+	return validator.New().Var(email,"required,email") == nil
+}
+
 func hashPassword(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err != nil {

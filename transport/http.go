@@ -5,7 +5,6 @@ import (
 	"authservice/endpoints"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"github.com/Smart-Pot/pkg/common/constants"
@@ -19,7 +18,7 @@ import (
 
 
 var (
-	errTokenNotFound = errors.New("token not found")
+	errTokenNotFound = perrors.New("token not found",400)
 )
 
 

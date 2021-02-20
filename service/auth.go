@@ -32,7 +32,9 @@ var (
 	// ErrInvalidHash :
 	ErrInvalidHash = perrors.New("Hash can not be decrypted",http.StatusBadRequest)
 	// ErrInvalidToken :
-	ErrInvalidToken = perrors.New("Token can not be resolved", http.StatusBadRequest) 
+	ErrInvalidToken = perrors.New("Token can not be resolved", http.StatusBadRequest)
+	// ErrInvalidEmail : 
+	ErrInvalidEmail = perrors.New("Email is not valid",http.StatusBadRequest)
 	// 
 	errServer = perrors.FromStatusCode(http.StatusInternalServerError)
 )
@@ -114,7 +116,7 @@ func (s *service) Resolve(ctx context.Context,tokenStr string) (*jwt.AuthToken,e
 	var at *jwt.AuthToken
 	defer func(beginTime time.Time) {
 		level.Info(s.logger).Log(
-			"function", "ForgorPassword",
+			"function", "Resolve",
 			"param:email", tokenStr,
 			"result:err",err,
 			"result:tkn",at,
@@ -123,6 +125,10 @@ func (s *service) Resolve(ctx context.Context,tokenStr string) (*jwt.AuthToken,e
 	}(time.Now())
 
 	at,err =jwt.Verify(tokenStr)
+	
+	if err == jwt.ErrTokenExpired {
+		return nil,perrors.FromError("",400,err)
+	}
 	if err != nil {
 		return nil,ErrInvalidToken
 	}
@@ -143,13 +149,17 @@ func (s *service) ForgotPassword(ctx context.Context,email string)  error {
 		return errServer
 	}
 
+	if !data.ValidateEmail(email) {
+		return ErrInvalidEmail
+	}
+
 	h,err := crypto.ForgotPwdCip.Encrypt(email)
 	if err != nil {
-		return err
+		return errServer
 	}
 
 	if err = s.forgotProducer.Produce([]byte(h)); err != nil {
-		return err
+		return errServer
 	}
 	return nil
 }
@@ -158,7 +168,7 @@ func (s *service) UpdatePassword(ctx context.Context,hash,newPwd string) error {
 	var err error
 	defer func(beginTime time.Time) {
 		level.Info(s.logger).Log(
-			"function", "ForgorPassword",
+			"function", "UpdatePassword",
 			"param:hash", hash,
 			"result:err",err,
 			"took", time.Since(beginTime))
@@ -241,7 +251,7 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 	var result string
 	defer func(beginTime time.Time) {
 		level.Info(s.logger).Log(
-			"function", "Login",
+			"function", "LoginWithGoogle",
 			"param:token", token,
 			"result", result,
 			"took", time.Since(beginTime))
@@ -265,7 +275,7 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 
 	// if error is not a notfound error then returns it
 	if err != nil && err != data.ErrUserNotFound {
-		return "",err
+		return "",errServer
 	}
 
 	f := data.SignUpForm{
@@ -276,12 +286,12 @@ func (s *service) LoginWithGoogle(ctx context.Context,token string) (string,erro
 		IsOAuth: true,
 	}
 	if err = f.HashPassword(); err != nil {
-		return "", err
+		return "", ErrInvalidPwd
 	}
 	f.GenerateUserID()
 	
 	if err = data.CreateUser(ctx,f);  err != nil {
-		return "",err
+		return "",errServer
 	}
 	tkn := &jwt.AuthToken{
 		UserID: f.UserID,
@@ -300,7 +310,7 @@ func (s service) Verify(ctx context.Context, hash string) error {
 	var err error
 	defer func(beginTime time.Time) {
 		level.Info(s.logger).Log(
-			"function", "Login",
+			"function", "Verify",
 			"param:token", hash,
 			"result", err,
 			"took", time.Since(beginTime))
