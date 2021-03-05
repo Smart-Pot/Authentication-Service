@@ -13,6 +13,7 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/uuid v1.2.0
+	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/klauspost/compress v1.11.7 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
