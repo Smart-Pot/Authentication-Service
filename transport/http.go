@@ -8,12 +8,11 @@ import (
 	"net/http"
 
 	"github.com/Smart-Pot/pkg/common/constants"
+	pkghttp "github.com/Smart-Pot/pkg/common/http"
 	"github.com/Smart-Pot/pkg/common/perrors"
-
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/transport"
 	httptransport "github.com/go-kit/kit/transport/http"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
 
@@ -23,9 +22,6 @@ var (
 
 func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 	r := mux.NewRouter().PathPrefix("/auth").Subrouter()
-	headers := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
-	methods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "HEAD", "OPTIONS"})
-	origins := handlers.AllowedOrigins([]string{"*"})
 
 	options := []httptransport.ServerOption{
 		httptransport.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
@@ -67,7 +63,7 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		options...,
 	))
 
-	return handlers.CORS(headers, methods, origins)(r)
+	return pkghttp.EnableCORS(r)
 }
 
 func encodeHTTPResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
