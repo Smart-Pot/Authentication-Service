@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.77.0 // indirect
-	github.com/Smart-Pot/pkg v0.0.0-20210220101758-fabd538827c1
+	github.com/Smart-Pot/pkg v0.0.0-20210306154154-df79e3be0738
 	github.com/aws/aws-sdk-go v1.37.15 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
@@ -13,6 +13,7 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/golang/snappy v0.0.2 // indirect
 	github.com/google/uuid v1.2.0
+	github.com/gorilla/handlers v1.5.1
 	github.com/gorilla/mux v1.8.0
 	github.com/klauspost/compress v1.11.7 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
@@ -30,7 +31,7 @@ require (
 	golang.org/x/net v0.0.0-20210220033124-5f55cee0dc0d // indirect
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210220050731-9a76102bfb43 // indirect
+	golang.org/x/sys v0.0.0-20210305230114-8fe3ee5dd75b // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

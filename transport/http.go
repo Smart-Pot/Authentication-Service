@@ -8,19 +8,17 @@ import (
 	"net/http"
 
 	"github.com/Smart-Pot/pkg/common/constants"
+	pkghttp "github.com/Smart-Pot/pkg/common/http"
 	"github.com/Smart-Pot/pkg/common/perrors"
-
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/transport"
 	httptransport "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
 )
 
-
 var (
-	errTokenNotFound = perrors.New("token not found",400)
+	errTokenNotFound = perrors.New("token not found", 400)
 )
-
 
 func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 	r := mux.NewRouter().PathPrefix("/auth").Subrouter()
@@ -36,7 +34,7 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		encodeHTTPResponse,
 		options...,
 	))
-	
+
 	r.Methods("POST").Path("/google/login").Handler(httptransport.NewServer(
 		e.LoginWithGoogle,
 		decodeOAuthHTTPRequest,
@@ -55,7 +53,7 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		e.Verify,
 		decodeVerifyRequest,
 		encodeHTTPResponse,
-		options...
+		options...,
 	))
 
 	r.Methods("GET").Path("/").Handler(httptransport.NewServer(
@@ -65,7 +63,7 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		options...,
 	))
 
-	return r
+	return pkghttp.EnableCORS(r)
 }
 
 func encodeHTTPResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
@@ -73,43 +71,42 @@ func encodeHTTPResponse(ctx context.Context, w http.ResponseWriter, response int
 	return json.NewEncoder(w).Encode(response)
 }
 
-func encodeResolveHTTPResponse(ctx context.Context,w http.ResponseWriter,response interface{}) error {
+func encodeResolveHTTPResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	a := response.(endpoints.AuthResponse)
-	w.Header().Set(constants.UserIDHeaderKey,a.Token)
+	w.Header().Set(constants.UserIDHeaderKey, a.Token)
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	return nil
 }
 
-func decodeOAuthHTTPRequest(_ context.Context,r *http.Request) (interface{}, error) {
-	t := r.Header.Get(constants.OAuthHeaderKey) 
+func decodeOAuthHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	t := r.Header.Get(constants.OAuthHeaderKey)
 	return endpoints.OAuth2Request{
 		Token: t,
-	},nil
+	}, nil
 }
 
-
-func decodeVerifyRequest(_ context.Context,r *http.Request) (interface{},error) {
+func decodeVerifyRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	vars := mux.Vars(r)
 	h := vars["hash"]
 	return endpoints.VerifyRequest{
-		Hash : h,
-	},nil
+		Hash: h,
+	}, nil
 
 }
 
-func decodeResolveHTTPRequest(_ context.Context, r *http.Request) (interface{},error) {
+func decodeResolveHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	jwt := r.Header.Get(constants.TokenHeaderKey)
 	if jwt == "" {
-		return nil,perrors.New("token not found in header",http.StatusBadRequest)
+		return nil, perrors.New("token not found in header", http.StatusBadRequest)
 	}
-	return endpoints.OAuth2Request {
+	return endpoints.OAuth2Request{
 		Token: jwt,
-	},nil
+	}, nil
 }
 
 func decodeAuthHTTPRequest(_ context.Context, r *http.Request) (interface{}, error) {
-	var ep  struct{
-		Email string
+	var ep struct {
+		Email    string
 		Password string
 	}
 
@@ -133,4 +130,3 @@ func decodeNewUserHTTPRequest(_ context.Context, r *http.Request) (interface{}, 
 		NewUser: u,
 	}, nil
 }
-
