@@ -67,6 +67,14 @@ func NewService(logger log.Logger, verifyProducer, forgotProducer amqp.Producer)
 
 // SignUp gets a form data and verify it and notify amqp server
 func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
+	var err error
+	defer func(beginTime time.Time) {
+		level.Info(s.logger).Log(
+			"function", "SignUp",
+			"param:form", form,
+			"result:err", err,
+			"took", time.Since(beginTime))
+	}(time.Now())
 	u, err := data.GetUserByEmail(ctx, form.Email)
 	// If a cred is founded than return email taken error
 	if err == nil {
