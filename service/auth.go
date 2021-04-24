@@ -71,10 +71,14 @@ func (s *service) SignUp(ctx context.Context, form data.SignUpForm) error {
 	defer func(beginTime time.Time) {
 		level.Info(s.logger).Log(
 			"function", "SignUp",
-			"param:form", form,
+			//"param:form", form,
 			"result:err", err,
 			"took", time.Since(beginTime))
 	}(time.Now())
+	if err := form.Validate(); err != nil {
+		return err
+	}
+ 
 	u, err := data.GetUserByEmail(ctx, form.Email)
 	// If a cred is founded than return email taken error
 	if err == nil {
@@ -147,7 +151,7 @@ func (s *service) ForgotPassword(ctx context.Context, email string) error {
 	var err error
 	defer func(beginTime time.Time) {
 		level.Info(s.logger).Log(
-			"function", "ForgorPassword",
+			"function", "ForgotPassword",
 			"param:email", email,
 			"result:err", err,
 			"took", time.Since(beginTime))
