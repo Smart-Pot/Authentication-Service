@@ -49,7 +49,7 @@ func MakeHTTPHandlers(e endpoints.Endpoints, logger log.Logger) http.Handler {
 		options...,
 	))
 
-	r.Methods("POST").Path("/verify/{hash}").Handler(httptransport.NewServer(
+	r.Methods("GET").Path("/verify/{hash}").Handler(httptransport.NewServer(
 		e.Verify,
 		decodeVerifyRequest,
 		encodeHTTPResponse,
