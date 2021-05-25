@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	cloud.google.com/go v0.77.0 // indirect
-	github.com/Smart-Pot/pkg v0.0.0-20210425150306-2bb1da539be3
+	github.com/Smart-Pot/pkg v0.0.0-20210525104235-1f23a5cfa06d // indirect
 	github.com/aws/aws-sdk-go v1.37.15 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
